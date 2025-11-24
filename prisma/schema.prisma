@@ -1,0 +1,197 @@
+// Prisma Schema for StoryForge
+// PostgreSQL database optimized for Vercel deployment
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["jsonProtocol"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+// NextAuth.js required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Subscription fields
+  subscriptionTier   String   @default("hobby") // hobby | professional | enterprise
+  subscriptionStatus String   @default("active") // active | cancelled | past_due
+  wordsUsedThisMonth Int      @default(0)
+  tokensUsedThisMonth Int     @default(0)
+  usageResetDate     DateTime @default(now())
+  stripeCustomerId   String?  @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  projects Project[]
+  exports  Export[]
+
+  @@index([email])
+  @@index([stripeCustomerId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// StoryForge core tables
+
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String   @db.Text
+  genre       String   // thriller | fantasy | romance | sci-fi | mystery
+  synopsis    String   @db.Text
+  coverImageUrl String? @db.Text
+
+  // Progress tracking
+  wordCount        Int     @default(0)
+  completedScenes  Int     @default(0)
+  totalScenes      Int     @default(0)
+  progress         Float   @default(0)
+  isCompleted      Boolean @default(false)
+  totalTargetWords Int     @default(100000) // 100k-130k typical
+  totalWordsWritten Int    @default(0)
+  chaptersComplete Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenes       Scene[]
+  characters   Character[]
+  worldBuilding WorldBuilding[]
+  exports      Export[]
+
+  @@index([userId])
+  @@index([genre])
+  @@index([createdAt])
+}
+
+model Scene {
+  id            String   @id @default(cuid())
+  projectId     String
+  chapterNumber Int
+  sceneNumber   Int
+  title         String   @db.Text
+  content       String   @db.Text // The actual scene text
+  wordCount     Int      @default(0)
+  status        String   @default("draft") // draft | revised | completed
+
+  // Quality metrics
+  uwqesScore    Float?   // Writing quality score (0-100)
+
+  // Metadata
+  metadata      Json?    @db.JsonB // hook, conflict, resolution, cliffhanger, etc.
+  versions      Json[]   @default([]) @db.JsonB // History of revisions
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([chapterNumber, sceneNumber])
+  @@index([status])
+}
+
+model Character {
+  id          String @id @default(cuid())
+  projectId   String
+  name        String @db.VarChar(255)
+  role        String // protagonist | antagonist | supporting | minor
+  description String @db.Text
+  backstory   String @db.Text
+  motivations String @db.Text
+  personality String @db.Text
+  relationships Json? @db.JsonB
+  arc         String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([role])
+}
+
+model WorldBuilding {
+  id          String @id @default(cuid())
+  projectId   String
+  category    String // setting | culture | history | magic | technology
+  name        String @db.VarChar(255)
+  description String @db.Text
+  details     Json?  @db.JsonB
+  importance  String // core | major | minor
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([category])
+}
+
+model Export {
+  id        String @id @default(cuid())
+  projectId String
+  userId    String
+  format    String // txt | pdf | epub
+  fileUrl   String @db.Text
+  metadata  Json?  @db.JsonB
+
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+}

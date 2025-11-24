@@ -1,0 +1,76 @@
+/**
+ * Subscription Checkout API Route
+ * POST - Create Stripe checkout session
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { StripeService } from '@/services/stripe-service';
+import { z } from 'zod';
+
+// Validation schema for checkout request
+const createCheckoutSchema = z.object({
+  tier: z.enum(['hobby', 'professional', 'enterprise']),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+});
+
+/**
+ * POST /api/subscription/checkout
+ * Create a Stripe checkout session for subscription
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Parse and validate request body
+    const body = await request.json();
+    const validationResult = createCheckoutSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed',
+          details: validationResult.error.errors,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { tier, successUrl, cancelUrl } = validationResult.data;
+
+    // Get base URL from request
+    const baseUrl = request.headers.get('origin') || 'http://localhost:3000';
+
+    // Create checkout session
+    const checkoutSession = await StripeService.createCheckoutSession({
+      userId: session.user.id,
+      tier,
+      successUrl: successUrl || `${baseUrl}/dashboard?checkout=success`,
+      cancelUrl: cancelUrl || `${baseUrl}/pricing?checkout=cancelled`,
+    });
+
+    return NextResponse.json({
+      sessionId: checkoutSession.sessionId,
+      url: checkoutSession.url,
+      tier,
+    });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    return NextResponse.json(
+      {
+        error: 'Failed to create checkout session',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}
