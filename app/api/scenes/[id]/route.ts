@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Validation schema for scene update
@@ -166,30 +166,34 @@ export async function PUT(
         timestamp: new Date().toISOString(),
       };
 
-      // Update scene with version history
-      const scene = await prisma.scene.update({
-        where: { id },
-        data: {
-          ...updateData,
-          wordCount: newWordCount,
-          versions: {
-            push: currentVersion,
-          },
-          updatedAt: new Date(),
-        },
-      });
-
-      // Update project word count if content changed
-      if (wordCountDelta !== 0) {
-        await prisma.project.update({
-          where: { id: existingScene.project.id },
+      // Update scene and project stats atomically
+      const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const updatedScene = await tx.scene.update({
+          where: { id },
           data: {
-            wordCount: { increment: wordCountDelta },
-            // totalWordsWritten is cumulative - only increment when words are added
-            totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
+            ...updateData,
+            wordCount: newWordCount,
+            versions: {
+              push: currentVersion,
+            },
+            updatedAt: new Date(),
           },
         });
-      }
+
+        // Update project word count if content changed
+        if (wordCountDelta !== 0) {
+          await tx.project.update({
+            where: { id: existingScene.project.id },
+            data: {
+              wordCount: { increment: wordCountDelta },
+              // totalWordsWritten is cumulative - only increment when words are added
+              totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
+            },
+          });
+        }
+
+        return updatedScene;
+      });
 
       return NextResponse.json({
         scene,
