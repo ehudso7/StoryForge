@@ -18,6 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Note: epub-gen has TypeScript issues, using require
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const EPub = require('epub-gen');
 
 export interface ExportMetadata {

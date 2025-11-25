@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { StripeService, TIER_LIMITS } from '@/services/stripe-service';
+import { TIER_LIMITS } from '@/services/stripe-service';
 import { z } from 'zod';
 
 // Validation schema for project creation
@@ -23,7 +23,7 @@ const createProjectSchema = z.object({
  * GET /api/projects
  * List all projects for the authenticated user
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
