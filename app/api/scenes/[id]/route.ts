@@ -166,6 +166,10 @@ export async function PUT(
         timestamp: new Date().toISOString(),
       };
 
+      // Update scene and project stats atomically
+      const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const updatedScene = await tx.scene.update({
+          where: { id: params.id },
       // Update scene with version history
       const scene = await prisma.scene.update({
         where: { id },
@@ -187,9 +191,28 @@ export async function PUT(
             wordCount: { increment: wordCountDelta },
             // totalWordsWritten is cumulative - only increment when words are added
             totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
+            ...updateData,
+            wordCount: newWordCount,
+            versions: {
+              push: currentVersion,
+            },
+            updatedAt: new Date(),
           },
         });
-      }
+
+        // Update project word count if content changed
+        if (wordCountDelta !== 0) {
+          await tx.project.update({
+            where: { id: existingScene.project.id },
+            data: {
+              wordCount: { increment: wordCountDelta },
+              totalWordsWritten: { increment: wordCountDelta },
+            },
+          });
+        }
+
+        return updatedScene;
+      });
 
       return NextResponse.json({
         scene,
@@ -271,12 +294,19 @@ export async function DELETE(
       await tx.scene.delete({
         where: { id },
       });
+        where: { id: params.id },
+      });
+    // Delete scene
+    await prisma.scene.delete({
+      where: { id },
+    });
 
       await tx.project.update({
         where: { id: existingScene.project.id },
         data: {
           totalScenes: { decrement: 1 },
           wordCount: { decrement: existingScene.wordCount },
+          totalWordsWritten: { decrement: existingScene.wordCount },
           completedScenes: existingScene.status === 'completed' ? { decrement: 1 } : undefined,
         },
       });

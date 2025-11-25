@@ -71,6 +71,8 @@ export async function GET(
     const chapter = searchParams.get('chapter');
     const status = searchParams.get('status');
 
+    // Build filter with proper typing
+    const where: Prisma.SceneWhereInput = { projectId: params.id };
     // Build filter
     const where: any = { projectId: id };
     if (chapter) {
@@ -181,6 +183,7 @@ export async function POST(
     const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newScene = await tx.scene.create({
         data: {
+          projectId: params.id,
           projectId: id,
           chapterNumber,
           sceneNumber,
@@ -194,6 +197,7 @@ export async function POST(
       });
 
       await tx.project.update({
+        where: { id: params.id },
         where: { id },
         data: {
           totalScenes: { increment: 1 },
