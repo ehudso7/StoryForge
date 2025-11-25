@@ -27,9 +27,10 @@ const updateProjectSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -41,7 +42,7 @@ export async function GET(
 
     const project = await prisma.project.findUnique({
       where: {
-        id: params.id,
+        id,
       },
       include: {
         scenes: {
@@ -111,9 +112,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -125,7 +127,7 @@ export async function PUT(
 
     // Verify project exists and user owns it
     const existingProject = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -161,10 +163,9 @@ export async function PUT(
 
     // Update project
     const project = await prisma.project.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...updateData,
-        updatedAt: new Date(),
       },
     });
 
@@ -187,9 +188,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -201,7 +203,7 @@ export async function DELETE(
 
     // Verify project exists and user owns it
     const existingProject = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: {
         userId: true,
         title: true,
@@ -224,7 +226,7 @@ export async function DELETE(
 
     // Delete project (cascades to scenes, characters, worldBuilding, exports)
     await prisma.project.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

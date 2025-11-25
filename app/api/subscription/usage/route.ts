@@ -84,6 +84,8 @@ export async function GET(request: NextRequest) {
     }, {});
 
     return NextResponse.json({
+      tier,
+      status: user.subscriptionStatus,
       usage: {
         tokens: {
           used: user.tokensUsedThisMonth,

@@ -33,7 +33,9 @@ export default function SignInPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard"
+  const rawCallbackUrl = searchParams.get("callbackUrl")
+  // Only allow relative URLs to prevent open redirect
+  const callbackUrl = rawCallbackUrl?.startsWith("/") ? rawCallbackUrl : "/dashboard"
   const [isLoading, setIsLoading] = React.useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false)
   const [isGithubLoading, setIsGithubLoading] = React.useState(false)

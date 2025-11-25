@@ -27,8 +27,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const projectId = searchParams.get('projectId');
     const format = searchParams.get('format');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limitParam = parseInt(searchParams.get('limit') || '50', 10);
+    const offsetParam = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Math.min(Math.max(isNaN(limitParam) ? 50 : limitParam, 1), 100);
+    const offset = Math.max(isNaN(offsetParam) ? 0 : offsetParam, 0);
 
     // Build filter
     const where: any = { userId: session.user.id };

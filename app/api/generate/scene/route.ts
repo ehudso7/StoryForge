@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { StripeService } from '@/services/stripe-service';
 import { generateScene } from '@/services/openai-service';
 import { z } from 'zod';
@@ -106,9 +107,12 @@ export async function POST(request: NextRequest) {
     if (previousSceneId) {
       const previousScene = await prisma.scene.findUnique({
         where: { id: previousSceneId },
-        select: { content: true },
+        select: { content: true, projectId: true },
       });
-      previousContext = previousScene?.content;
+      // Verify previous scene belongs to the same project
+      if (previousScene && previousScene.projectId === projectId) {
+        previousContext = previousScene.content;
+      }
     }
 
     // Generate scene using OpenAI
@@ -135,34 +139,37 @@ export async function POST(request: NextRequest) {
       words: wordCount,
     });
 
-    // Create scene in database
-    const scene = await prisma.scene.create({
-      data: {
-        projectId,
-        chapterNumber,
-        sceneNumber,
-        title: `Chapter ${chapterNumber}, Scene ${sceneNumber}`,
-        content: result.text,
-        wordCount,
-        status: 'draft',
-        metadata: {
-          generatedWith: result.model,
-          outline,
-          pov,
-          tone,
-          characterNames,
+    // Create scene and update project stats atomically
+    const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const newScene = await tx.scene.create({
+        data: {
+          projectId,
+          chapterNumber,
+          sceneNumber,
+          title: `Chapter ${chapterNumber}, Scene ${sceneNumber}`,
+          content: result.text,
+          wordCount,
+          status: 'draft',
+          metadata: {
+            generatedWith: result.model,
+            outline,
+            pov,
+            tone,
+            characterNames,
+          },
         },
-      },
-    });
+      });
 
-    // Update project stats
-    await prisma.project.update({
-      where: { id: projectId },
-      data: {
-        totalScenes: { increment: 1 },
-        wordCount: { increment: wordCount },
-        totalWordsWritten: { increment: wordCount },
-      },
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          totalScenes: { increment: 1 },
+          wordCount: { increment: wordCount },
+          totalWordsWritten: { increment: wordCount },
+        },
+      });
+
+      return newScene;
     });
 
     return NextResponse.json(

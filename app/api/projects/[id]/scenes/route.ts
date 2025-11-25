@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Validation schema for scene creation
@@ -32,9 +33,10 @@ const createSceneSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -46,7 +48,7 @@ export async function GET(
 
     // Verify project exists and user owns it
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -70,7 +72,7 @@ export async function GET(
     const status = searchParams.get('status');
 
     // Build filter
-    const where: any = { projectId: params.id };
+    const where: any = { projectId: id };
     if (chapter) {
       where.chapterNumber = parseInt(chapter);
     }
@@ -102,9 +104,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -116,7 +119,7 @@ export async function POST(
 
     // Verify project exists and user owns it
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -153,7 +156,7 @@ export async function POST(
     // Check if scene already exists at this position
     const existingScene = await prisma.scene.findFirst({
       where: {
-        projectId: params.id,
+        projectId: id,
         chapterNumber,
         sceneNumber,
       },
@@ -174,29 +177,32 @@ export async function POST(
       ? content.trim().split(/\s+/).filter(w => w.length > 0).length
       : 0;
 
-    // Create scene
-    const scene = await prisma.scene.create({
-      data: {
-        projectId: params.id,
-        chapterNumber,
-        sceneNumber,
-        title: title.trim(),
-        content: content || '',
-        wordCount,
-        status: 'draft',
-        metadata: metadata || {},
-        versions: [],
-      },
-    });
+    // Create scene and update project stats atomically
+    const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const newScene = await tx.scene.create({
+        data: {
+          projectId: id,
+          chapterNumber,
+          sceneNumber,
+          title: title.trim(),
+          content: content || '',
+          wordCount,
+          status: 'draft',
+          metadata: metadata || {},
+          versions: [],
+        },
+      });
 
-    // Update project stats
-    await prisma.project.update({
-      where: { id: params.id },
-      data: {
-        totalScenes: { increment: 1 },
-        wordCount: { increment: wordCount },
-        totalWordsWritten: { increment: wordCount },
-      },
+      await tx.project.update({
+        where: { id },
+        data: {
+          totalScenes: { increment: 1 },
+          wordCount: { increment: wordCount },
+          totalWordsWritten: { increment: wordCount },
+        },
+      });
+
+      return newScene;
     });
 
     return NextResponse.json(

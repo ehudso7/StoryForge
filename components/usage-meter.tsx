@@ -40,14 +40,14 @@ interface UsageItemProps {
 }
 
 function UsageItem({ label, current, limit, unit }: UsageItemProps) {
-  const percentage = (current / limit) * 100
   const isUnlimited = limit === -1
+  const percentage = isUnlimited ? 0 : (current / limit) * 100
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{label}</span>
-        <span className={cn("text-sm font-semibold", getUsageTextColor(percentage))}>
+        <span className={cn("text-sm font-semibold", isUnlimited ? "text-green-600 dark:text-green-400" : getUsageTextColor(percentage))}>
           {isUnlimited ? (
             <span className="flex items-center gap-1">
               <Zap className="h-3.5 w-3.5" />

@@ -15,9 +15,10 @@ import { DraftEvaluator } from '@/services/draft-evaluator';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -29,7 +30,7 @@ export async function POST(
 
     // Fetch scene with project info
     const scene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -72,7 +73,7 @@ export async function POST(
 
     // Update scene with evaluation score
     await prisma.scene.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         uwqesScore: metrics.overallScore,
         updatedAt: new Date(),

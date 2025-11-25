@@ -57,7 +57,7 @@ export function ProjectCard({
   onDelete,
   onArchive,
 }: ProjectCardProps) {
-  const progress = (wordCount / targetWordCount) * 100
+  const progress = targetWordCount > 0 ? (wordCount / targetWordCount) * 100 : 0
 
   return (
     <Card className="group overflow-hidden transition-shadow hover:shadow-lg">

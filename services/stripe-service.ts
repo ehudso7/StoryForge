@@ -5,15 +5,23 @@
 
 import Stripe from 'stripe';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia',
-  typescript: true,
-});
+const getStripeClient = (() => {
+  let client: Stripe | null = null;
+  return () => {
+    if (!client) {
+      if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error('STRIPE_SECRET_KEY is not defined in environment variables');
+      }
+      client = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2025-02-24.acacia',
+        typescript: true,
+      });
+    }
+    return client;
+  };
+})();
 
 export type SubscriptionTier = 'hobby' | 'professional' | 'enterprise';
 
@@ -92,7 +100,7 @@ export class StripeService {
 
       // Create Stripe customer if doesn't exist
       if (!customerId) {
-        const customer = await stripe.customers.create({
+        const customer = await getStripeClient().customers.create({
           email: user.email,
           metadata: {
             userId: params.userId,
@@ -108,7 +116,7 @@ export class StripeService {
       }
 
       // Create checkout session
-      const session = await stripe.checkout.sessions.create({
+      const session = await getStripeClient().checkout.sessions.create({
         customer: customerId,
         mode: 'subscription',
         payment_method_types: ['card'],
@@ -157,7 +165,7 @@ export class StripeService {
         throw new Error('No Stripe customer found for user');
       }
 
-      const session = await stripe.billingPortal.sessions.create({
+      const session = await getStripeClient().billingPortal.sessions.create({
         customer: user.stripeCustomerId,
         return_url: params.returnUrl,
       });
@@ -182,7 +190,7 @@ export class StripeService {
     }
 
     try {
-      const event = stripe.webhooks.constructEvent(
+      const event = getStripeClient().webhooks.constructEvent(
         params.body,
         params.signature,
         webhookSecret
@@ -444,12 +452,37 @@ export class StripeService {
     tokens: number;
     words: number;
   }): Promise<void> {
-    await prisma.user.update({
-      where: { id: params.userId },
-      data: {
-        tokensUsedThisMonth: { increment: params.tokens },
-        wordsUsedThisMonth: { increment: params.words },
-      },
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const user = await tx.user.findUnique({
+        where: { id: params.userId },
+        select: {
+          subscriptionTier: true,
+          tokensUsedThisMonth: true,
+          wordsUsedThisMonth: true,
+        },
+      });
+
+      if (!user) {
+        throw new Error('User not found for usage tracking');
+      }
+
+      const tier = (user.subscriptionTier as SubscriptionTier) || 'hobby';
+      const limits = TIER_LIMITS[tier];
+
+      if (
+        user.tokensUsedThisMonth + params.tokens > limits.tokensPerMonth ||
+        user.wordsUsedThisMonth + params.words > limits.wordsPerMonth
+      ) {
+        throw new Error('Usage limit exceeded');
+      }
+
+      await tx.user.update({
+        where: { id: params.userId },
+        data: {
+          tokensUsedThisMonth: { increment: params.tokens },
+          wordsUsedThisMonth: { increment: params.words },
+        },
+      });
     });
 
     console.log(`Usage tracked for user ${params.userId}: +${params.tokens} tokens, +${params.words} words`);

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Main circle background -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGradient512)"/>
+
+  <!-- Decorative patterns -->
+  <g opacity="0.2">
+    <path d="M 100 150 Q 130 120 160 150 T 220 150" stroke="white" stroke-width="4" fill="none"/>
+    <path d="M 100 280 Q 130 250 160 280 T 220 280" stroke="white" stroke-width="4" fill="none"/>
+    <path d="M 100 410 Q 130 380 160 410 T 220 410" stroke="white" stroke-width="4" fill="none"/>
+  </g>
+
+  <!-- SF Text -->
+  <text x="256" y="330" font-size="200" font-weight="bold" fill="white" text-anchor="middle" font-family="Arial, sans-serif">SF</text>
+</svg>

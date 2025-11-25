@@ -25,9 +25,10 @@ const updateWorldBuildingSchema = z.object({
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -39,7 +40,7 @@ export async function PUT(
 
     // Verify world element exists and user owns it
     const existingElement = await prisma.worldBuilding.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: { userId: true },
@@ -79,7 +80,7 @@ export async function PUT(
 
     // Update world building element
     const worldElement = await prisma.worldBuilding.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...updateData,
         updatedAt: new Date(),
@@ -105,9 +106,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -119,7 +121,7 @@ export async function DELETE(
 
     // Verify world element exists and user owns it
     const existingElement = await prisma.worldBuilding.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: { userId: true },
@@ -143,7 +145,7 @@ export async function DELETE(
 
     // Delete world building element
     await prisma.worldBuilding.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

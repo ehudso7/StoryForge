@@ -34,9 +34,10 @@ const updateSceneSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -47,7 +48,7 @@ export async function GET(
     }
 
     const scene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -90,9 +91,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -104,7 +106,7 @@ export async function PUT(
 
     // Verify scene exists and user owns it
     const existingScene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -163,11 +165,9 @@ export async function PUT(
         timestamp: new Date().toISOString(),
       };
 
-      updateData.content = updateData.content;
-
       // Update scene with version history
       const scene = await prisma.scene.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           ...updateData,
           wordCount: newWordCount,
@@ -197,7 +197,7 @@ export async function PUT(
     } else {
       // Update without content change
       const scene = await prisma.scene.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           ...updateData,
           updatedAt: new Date(),
@@ -224,9 +224,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -238,7 +239,7 @@ export async function DELETE(
 
     // Verify scene exists and user owns it
     const existingScene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -265,7 +266,7 @@ export async function DELETE(
 
     // Delete scene
     await prisma.scene.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     // Update project stats
