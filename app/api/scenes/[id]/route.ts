@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Validation schema for scene update
@@ -184,7 +185,8 @@ export async function PUT(
           where: { id: existingScene.project.id },
           data: {
             wordCount: { increment: wordCountDelta },
-            totalWordsWritten: { increment: wordCountDelta },
+            // totalWordsWritten is cumulative - only increment when words are added
+            totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
           },
         });
       }
@@ -264,20 +266,20 @@ export async function DELETE(
       );
     }
 
-    // Delete scene
-    await prisma.scene.delete({
-      where: { id },
-    });
+    // Delete scene and update project stats atomically
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.scene.delete({
+        where: { id },
+      });
 
-    // Update project stats
-    await prisma.project.update({
-      where: { id: existingScene.project.id },
-      data: {
-        totalScenes: { decrement: 1 },
-        wordCount: { decrement: existingScene.wordCount },
-        totalWordsWritten: { decrement: existingScene.wordCount },
-        completedScenes: existingScene.status === 'completed' ? { decrement: 1 } : undefined,
-      },
+      await tx.project.update({
+        where: { id: existingScene.project.id },
+        data: {
+          totalScenes: { decrement: 1 },
+          wordCount: { decrement: existingScene.wordCount },
+          completedScenes: existingScene.status === 'completed' ? { decrement: 1 } : undefined,
+        },
+      });
     });
 
     return NextResponse.json({
