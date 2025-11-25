@@ -28,9 +28,10 @@ const updateCharacterSchema = z.object({
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -42,7 +43,7 @@ export async function PUT(
 
     // Verify character exists and user owns it
     const existingCharacter = await prisma.character.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: { userId: true },
@@ -82,7 +83,7 @@ export async function PUT(
 
     // Update character
     const character = await prisma.character.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...updateData,
         updatedAt: new Date(),
@@ -108,9 +109,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -122,7 +124,7 @@ export async function DELETE(
 
     // Verify character exists and user owns it
     const existingCharacter = await prisma.character.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: { userId: true },
@@ -146,7 +148,7 @@ export async function DELETE(
 
     // Delete character
     await prisma.character.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

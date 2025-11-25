@@ -4,16 +4,24 @@ import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import prisma from './prisma';
 
+const getEnvVar = (name: string): string => {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+};
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: getEnvVar('GOOGLE_CLIENT_ID'),
+      clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
     }),
     GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: getEnvVar('GITHUB_ID'),
+      clientSecret: getEnvVar('GITHUB_SECRET'),
     }),
   ],
   pages: {
@@ -61,8 +69,12 @@ export const authOptions: NextAuthOptions = {
           const daysSinceReset = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysSinceReset >= 30) {
-            await prisma.user.update({
-              where: { id: user.id },
+            // Atomic update with condition to prevent race
+            await prisma.user.updateMany({
+              where: {
+                id: user.id,
+                usageResetDate: dbUser.usageResetDate,
+              },
               data: {
                 wordsUsedThisMonth: 0,
                 tokensUsedThisMonth: 0,

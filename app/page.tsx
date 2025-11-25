@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react"
+import { PRICING_TIERS } from "@/lib/pricing-tiers"
 
 const features = [
   {
@@ -82,53 +83,7 @@ const testimonials = [
   },
 ]
 
-const pricingTiers = [
-  {
-    name: "Free",
-    price: "$0",
-    description: "Perfect for trying out StoryForge",
-    features: [
-      "1 project",
-      "10 scenes per project",
-      "Basic quality metrics",
-      "5 AI analyses per month",
-    ],
-    cta: "Start Free",
-    href: "/auth/signin",
-    popular: false,
-  },
-  {
-    name: "Starter",
-    price: "$9",
-    description: "For serious writers",
-    features: [
-      "5 projects",
-      "Unlimited scenes",
-      "Full quality metrics",
-      "50 AI analyses per month",
-      "Export to multiple formats",
-    ],
-    cta: "Start Free Trial",
-    href: "/auth/signin",
-    popular: true,
-  },
-  {
-    name: "Pro",
-    price: "$29",
-    description: "For professional authors",
-    features: [
-      "Unlimited projects",
-      "Unlimited scenes",
-      "Advanced analytics",
-      "500 AI analyses per month",
-      "Priority support",
-      "API access",
-    ],
-    cta: "Start Free Trial",
-    href: "/auth/signin",
-    popular: false,
-  },
-]
+const pricingTiers = Object.values(PRICING_TIERS)
 
 export default function HomePage() {
   return (
@@ -271,9 +226,7 @@ export default function HomePage() {
                   <CardDescription>{tier.description}</CardDescription>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">{tier.price}</span>
-                    {tier.price !== "$0" && (
-                      <span className="text-muted-foreground">/month</span>
-                    )}
+                    <span className="text-muted-foreground">{tier.period}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

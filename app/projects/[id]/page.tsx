@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, useParams } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { Plus, ArrowLeft, Edit, Trash2, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -51,6 +51,7 @@ export default function ProjectDetailPage() {
   const router = useRouter()
   const params = useParams()
   const projectId = params.id as string
+  const queryClient = useQueryClient()
 
   // Redirect to sign in if not authenticated
   React.useEffect(() => {
@@ -85,7 +86,7 @@ export default function ProjectDetailPage() {
         throw new Error("Failed to delete scene")
       }
       toast.success("Scene deleted successfully")
-      // Refetch project
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] })
     } catch (error) {
       toast.error("Failed to delete scene")
     }
@@ -99,7 +100,9 @@ export default function ProjectDetailPage() {
     return null
   }
 
-  const progress = (project.wordCount / project.targetWordCount) * 100
+  const progress = project.targetWordCount > 0
+    ? (project.wordCount / project.targetWordCount) * 100
+    : 0
 
   return (
     <div className="container py-8">

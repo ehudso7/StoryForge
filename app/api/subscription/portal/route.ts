@@ -14,6 +14,17 @@ const createPortalSchema = z.object({
   returnUrl: z.string().url().optional(),
 });
 
+// Helper to validate URL is same origin
+const isSameOrigin = (url: string, origin: string) => {
+  try {
+    const parsed = new URL(url);
+    const originParsed = new URL(origin);
+    return parsed.origin === originParsed.origin;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * POST /api/subscription/portal
  * Create a Stripe customer portal session
@@ -45,13 +56,19 @@ export async function POST(request: NextRequest) {
 
     const { returnUrl } = validationResult.data;
 
+    // Validate URL is same origin to prevent open redirect
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    if (returnUrl && !isSameOrigin(returnUrl, baseUrl)) {
+      return NextResponse.json({ error: 'Invalid returnUrl' }, { status: 400 });
+    }
+
     // Get base URL from request
-    const baseUrl = request.headers.get('origin') || 'http://localhost:3000';
+    const requestOrigin = request.headers.get('origin') || 'http://localhost:3000';
 
     // Create portal session
     const portalSession = await StripeService.createPortalSession({
       userId: session.user.id,
-      returnUrl: returnUrl || `${baseUrl}/dashboard/settings`,
+      returnUrl: returnUrl || `${requestOrigin}/dashboard/settings`,
     });
 
     return NextResponse.json({
