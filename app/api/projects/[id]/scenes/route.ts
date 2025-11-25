@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Validation schema for scene creation
@@ -69,8 +70,8 @@ export async function GET(
     const chapter = searchParams.get('chapter');
     const status = searchParams.get('status');
 
-    // Build filter
-    const where: any = { projectId: params.id };
+    // Build filter with proper typing
+    const where: Prisma.SceneWhereInput = { projectId: params.id };
     if (chapter) {
       where.chapterNumber = parseInt(chapter);
     }
@@ -174,29 +175,32 @@ export async function POST(
       ? content.trim().split(/\s+/).filter(w => w.length > 0).length
       : 0;
 
-    // Create scene
-    const scene = await prisma.scene.create({
-      data: {
-        projectId: params.id,
-        chapterNumber,
-        sceneNumber,
-        title: title.trim(),
-        content: content || '',
-        wordCount,
-        status: 'draft',
-        metadata: metadata || {},
-        versions: [],
-      },
-    });
+    // Create scene and update project stats atomically
+    const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const newScene = await tx.scene.create({
+        data: {
+          projectId: params.id,
+          chapterNumber,
+          sceneNumber,
+          title: title.trim(),
+          content: content || '',
+          wordCount,
+          status: 'draft',
+          metadata: metadata || {},
+          versions: [],
+        },
+      });
 
-    // Update project stats
-    await prisma.project.update({
-      where: { id: params.id },
-      data: {
-        totalScenes: { increment: 1 },
-        wordCount: { increment: wordCount },
-        totalWordsWritten: { increment: wordCount },
-      },
+      await tx.project.update({
+        where: { id: params.id },
+        data: {
+          totalScenes: { increment: 1 },
+          wordCount: { increment: wordCount },
+          totalWordsWritten: { increment: wordCount },
+        },
+      });
+
+      return newScene;
     });
 
     return NextResponse.json(

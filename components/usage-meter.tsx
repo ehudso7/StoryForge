@@ -40,8 +40,8 @@ interface UsageItemProps {
 }
 
 function UsageItem({ label, current, limit, unit }: UsageItemProps) {
-  const percentage = (current / limit) * 100
-  const isUnlimited = limit === -1
+  const isUnlimited = limit === -1 || limit === 0
+  const percentage = isUnlimited ? 0 : (current / limit) * 100
 
   return (
     <div className="space-y-2">
@@ -82,17 +82,23 @@ const tierColors = {
 }
 
 export function UsageMeter({ tier, usage, className }: UsageMeterProps) {
-  const totalPercentage =
-    usage.projects.limit === -1
-      ? 0
-      : ((usage.projects.current / usage.projects.limit +
-          usage.scenes.current / usage.scenes.limit +
-          usage.analyses.current / usage.analyses.limit +
-          usage.apiCalls.current / usage.apiCalls.limit) /
-          4) *
-        100
+  // Check if any limit is unlimited (-1) or zero to prevent division errors
+  const hasUnlimitedOrZeroLimit =
+    usage.projects.limit <= 0 ||
+    usage.scenes.limit <= 0 ||
+    usage.analyses.limit <= 0 ||
+    usage.apiCalls.limit <= 0
 
-  const isNearingLimit = totalPercentage >= 75 && usage.projects.limit !== -1
+  const totalPercentage = hasUnlimitedOrZeroLimit
+    ? 0
+    : ((usage.projects.current / usage.projects.limit +
+        usage.scenes.current / usage.scenes.limit +
+        usage.analyses.current / usage.analyses.limit +
+        usage.apiCalls.current / usage.apiCalls.limit) /
+        4) *
+      100
+
+  const isNearingLimit = totalPercentage >= 75 && !hasUnlimitedOrZeroLimit
   const hasExceededLimit = totalPercentage >= 100
 
   return (

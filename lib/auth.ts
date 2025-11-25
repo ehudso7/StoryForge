@@ -4,16 +4,28 @@ import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import prisma from './prisma';
 
+/**
+ * Get and validate required environment variable
+ * Throws error at runtime if variable is missing
+ */
+function getEnvVar(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: getEnvVar('GOOGLE_CLIENT_ID'),
+      clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
     }),
     GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: getEnvVar('GITHUB_ID'),
+      clientSecret: getEnvVar('GITHUB_SECRET'),
     }),
   ],
   pages: {
@@ -79,6 +91,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'database',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getEnvVar('NEXTAUTH_SECRET'),
   debug: process.env.NODE_ENV === 'development',
 };

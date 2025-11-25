@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 // Validation schema for scene update
@@ -163,31 +164,33 @@ export async function PUT(
         timestamp: new Date().toISOString(),
       };
 
-      updateData.content = updateData.content;
-
-      // Update scene with version history
-      const scene = await prisma.scene.update({
-        where: { id: params.id },
-        data: {
-          ...updateData,
-          wordCount: newWordCount,
-          versions: {
-            push: currentVersion,
-          },
-          updatedAt: new Date(),
-        },
-      });
-
-      // Update project word count if content changed
-      if (wordCountDelta !== 0) {
-        await prisma.project.update({
-          where: { id: existingScene.project.id },
+      // Update scene and project stats atomically
+      const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const updatedScene = await tx.scene.update({
+          where: { id: params.id },
           data: {
-            wordCount: { increment: wordCountDelta },
-            totalWordsWritten: { increment: wordCountDelta },
+            ...updateData,
+            wordCount: newWordCount,
+            versions: {
+              push: currentVersion,
+            },
+            updatedAt: new Date(),
           },
         });
-      }
+
+        // Update project word count if content changed
+        if (wordCountDelta !== 0) {
+          await tx.project.update({
+            where: { id: existingScene.project.id },
+            data: {
+              wordCount: { increment: wordCountDelta },
+              totalWordsWritten: { increment: wordCountDelta },
+            },
+          });
+        }
+
+        return updatedScene;
+      });
 
       return NextResponse.json({
         scene,
@@ -263,20 +266,21 @@ export async function DELETE(
       );
     }
 
-    // Delete scene
-    await prisma.scene.delete({
-      where: { id: params.id },
-    });
+    // Delete scene and update project stats atomically
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.scene.delete({
+        where: { id: params.id },
+      });
 
-    // Update project stats
-    await prisma.project.update({
-      where: { id: existingScene.project.id },
-      data: {
-        totalScenes: { decrement: 1 },
-        wordCount: { decrement: existingScene.wordCount },
-        totalWordsWritten: { decrement: existingScene.wordCount },
-        completedScenes: existingScene.status === 'completed' ? { decrement: 1 } : undefined,
-      },
+      await tx.project.update({
+        where: { id: existingScene.project.id },
+        data: {
+          totalScenes: { decrement: 1 },
+          wordCount: { decrement: existingScene.wordCount },
+          totalWordsWritten: { decrement: existingScene.wordCount },
+          completedScenes: existingScene.status === 'completed' ? { decrement: 1 } : undefined,
+        },
+      });
     });
 
     return NextResponse.json({

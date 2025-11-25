@@ -41,12 +41,16 @@ export async function GET(request: NextRequest) {
         usage: {
           tokensUsed: details.usage.tokensUsed,
           tokensLimit: details.usage.tokensLimit,
-          tokensRemaining: details.usage.tokensLimit - details.usage.tokensUsed,
-          tokensPercentage: Math.round((details.usage.tokensUsed / details.usage.tokensLimit) * 100),
+          tokensRemaining: details.usage.tokensLimit === -1 ? -1 : details.usage.tokensLimit - details.usage.tokensUsed,
+          tokensPercentage: details.usage.tokensLimit > 0
+            ? Math.round((details.usage.tokensUsed / details.usage.tokensLimit) * 100)
+            : 0,
           wordsUsed: details.usage.wordsUsed,
           wordsLimit: details.usage.wordsLimit,
-          wordsRemaining: details.usage.wordsLimit - details.usage.wordsUsed,
-          wordsPercentage: Math.round((details.usage.wordsUsed / details.usage.wordsLimit) * 100),
+          wordsRemaining: details.usage.wordsLimit === -1 ? -1 : details.usage.wordsLimit - details.usage.wordsUsed,
+          wordsPercentage: details.usage.wordsLimit > 0
+            ? Math.round((details.usage.wordsUsed / details.usage.wordsLimit) * 100)
+            : 0,
           projectsCount: details.usage.projectsCount,
           projectsLimit: details.usage.projectsLimit,
           projectsRemaining: details.usage.projectsLimit === -1 ? -1 : details.usage.projectsLimit - details.usage.projectsCount,
