@@ -321,7 +321,7 @@ export default function EditorPage() {
               <CardHeader>
                 <CardTitle>No Metrics Available</CardTitle>
                 <CardDescription>
-                  Click "Analyze" to generate quality metrics for this scene
+                  Click &quot;Analyze&quot; to generate quality metrics for this scene
                 </CardDescription>
               </CardHeader>
               <CardContent>

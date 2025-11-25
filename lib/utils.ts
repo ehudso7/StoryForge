@@ -36,8 +36,36 @@ export function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...';
 }
 
+/**
+ * HTML entity encode dangerous characters to prevent XSS attacks.
+ * This encodes rather than removes characters to preserve user intent.
+ */
+export function escapeHtml(input: string): string {
+  const htmlEntities: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+  };
+  return input.replace(/[&<>"'/]/g, (char) => htmlEntities[char] || char);
+}
+
+/**
+ * Sanitize user input by removing potentially dangerous patterns.
+ * Use escapeHtml for output encoding; use this for input validation.
+ */
 export function sanitizeInput(input: string): string {
   return input
-    .replace(/[<>]/g, '')
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Remove javascript: and data: URLs
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    // Remove event handlers
+    .replace(/on\w+\s*=/gi, '')
+    // Remove script-like patterns
+    .replace(/&#/g, '')
     .trim();
 }

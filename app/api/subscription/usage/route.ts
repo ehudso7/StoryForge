@@ -13,7 +13,7 @@ import { TIER_LIMITS } from '@/services/stripe-service';
  * GET /api/subscription/usage
  * Get detailed usage statistics for the current user
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
