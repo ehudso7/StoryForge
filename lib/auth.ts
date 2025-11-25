@@ -4,12 +4,18 @@ import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import prisma from './prisma';
 
+/**
+ * Get and validate required environment variable
+ * Throws error at runtime if variable is missing
+ */
+function getEnvVar(name: string): string {
 const getEnvVar = (name: string): string => {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
+}
 };
 
 export const authOptions: NextAuthOptions = {
@@ -91,6 +97,6 @@ export const authOptions: NextAuthOptions = {
     strategy: 'database',
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: getEnvVar('NEXTAUTH_SECRET'),
   debug: process.env.NODE_ENV === 'development',
 };

@@ -28,6 +28,20 @@ const isSameOrigin = (url: string, origin: string) => {
 };
 
 /**
+ * Check if a URL has the same origin as the base URL
+ * Returns false if URL parsing fails (malformed URL)
+ */
+function isSameOrigin(url: string, baseUrl: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const baseUrlObj = new URL(baseUrl);
+    return urlObj.origin === baseUrlObj.origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * POST /api/subscription/checkout
  * Create a Stripe checkout session for subscription
  */
@@ -58,6 +72,10 @@ export async function POST(request: NextRequest) {
 
     const { tier, successUrl, cancelUrl } = validationResult.data;
 
+    // Use trusted server-configured base URL to prevent open redirect attacks
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
+    // Validate user-provided URLs are same origin to prevent open redirect
     // Validate URLs are same origin to prevent open redirect
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     if (successUrl && !isSameOrigin(successUrl, baseUrl)) {
