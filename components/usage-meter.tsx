@@ -83,6 +83,20 @@ const tierColors = {
 }
 
 export function UsageMeter({ tier, usage, className }: UsageMeterProps) {
+  // Calculate average percentage only from limited metrics (exclude unlimited/-1 and zero limits)
+  const limitedMetrics = [
+    usage.projects.limit > 0 ? usage.projects.current / usage.projects.limit : null,
+    usage.scenes.limit > 0 ? usage.scenes.current / usage.scenes.limit : null,
+    usage.analyses.limit > 0 ? usage.analyses.current / usage.analyses.limit : null,
+    usage.apiCalls.limit > 0 ? usage.apiCalls.current / usage.apiCalls.limit : null,
+  ].filter((val): val is number => val !== null)
+
+  const totalPercentage =
+    limitedMetrics.length > 0
+      ? (limitedMetrics.reduce((sum, val) => sum + val, 0) / limitedMetrics.length) * 100
+      : 0
+
+  const isNearingLimit = totalPercentage >= 75 && limitedMetrics.length > 0
   // Check if any limit is unlimited (-1) or zero to prevent division errors
   const hasUnlimitedOrZeroLimit =
     usage.projects.limit <= 0 ||

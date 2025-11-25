@@ -12,7 +12,7 @@ import { StripeService } from '@/services/stripe-service';
  * GET /api/subscription/status
  * Get user's subscription status and usage
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 

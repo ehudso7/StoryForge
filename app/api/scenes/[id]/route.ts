@@ -188,6 +188,9 @@ export async function PUT(
         await prisma.project.update({
           where: { id: existingScene.project.id },
           data: {
+            wordCount: { increment: wordCountDelta },
+            // totalWordsWritten is cumulative - only increment when words are added
+            totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
             ...updateData,
             wordCount: newWordCount,
             versions: {
@@ -289,6 +292,8 @@ export async function DELETE(
     // Delete scene and update project stats atomically
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.scene.delete({
+        where: { id },
+      });
         where: { id: params.id },
       });
     // Delete scene
