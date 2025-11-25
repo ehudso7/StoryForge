@@ -71,10 +71,8 @@ export async function GET(
     const chapter = searchParams.get('chapter');
     const status = searchParams.get('status');
 
-    // Build filter with proper typing
-    const where: Prisma.SceneWhereInput = { projectId: params.id };
     // Build filter
-    const where: any = { projectId: id };
+    const where: Prisma.SceneWhereInput = { projectId: id };
     if (chapter) {
       where.chapterNumber = parseInt(chapter);
     }
@@ -176,14 +174,13 @@ export async function POST(
 
     // Calculate word count
     const wordCount = content
-      ? content.trim().split(/\s+/).filter(w => w.length > 0).length
+      ? content.trim().split(/\s+/).filter((w: string) => w.length > 0).length
       : 0;
 
     // Create scene and update project stats atomically
     const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newScene = await tx.scene.create({
         data: {
-          projectId: params.id,
           projectId: id,
           chapterNumber,
           sceneNumber,
@@ -197,7 +194,6 @@ export async function POST(
       });
 
       await tx.project.update({
-        where: { id: params.id },
         where: { id },
         data: {
           totalScenes: { increment: 1 },

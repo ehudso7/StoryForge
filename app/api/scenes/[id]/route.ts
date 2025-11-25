@@ -154,7 +154,7 @@ export async function PUT(
       const newWordCount = updateData.content
         .trim()
         .split(/\s+/)
-        .filter(w => w.length > 0).length;
+        .filter((w: string) => w.length > 0).length;
 
       wordCountDelta = newWordCount - existingScene.wordCount;
 
@@ -171,28 +171,6 @@ export async function PUT(
         const updatedScene = await tx.scene.update({
           where: { id },
           data: {
-          where: { id: params.id },
-      // Update scene with version history
-      const scene = await prisma.scene.update({
-        where: { id },
-        data: {
-          ...updateData,
-          wordCount: newWordCount,
-          versions: {
-            push: currentVersion,
-          },
-          updatedAt: new Date(),
-        },
-      });
-
-      // Update project word count if content changed
-      if (wordCountDelta !== 0) {
-        await prisma.project.update({
-          where: { id: existingScene.project.id },
-          data: {
-            wordCount: { increment: wordCountDelta },
-            // totalWordsWritten is cumulative - only increment when words are added
-            totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
             ...updateData,
             wordCount: newWordCount,
             versions: {
@@ -210,7 +188,6 @@ export async function PUT(
               wordCount: { increment: wordCountDelta },
               // totalWordsWritten is cumulative - only increment when words are added
               totalWordsWritten: wordCountDelta > 0 ? { increment: wordCountDelta } : undefined,
-              totalWordsWritten: { increment: wordCountDelta },
             },
           });
         }
@@ -298,19 +275,12 @@ export async function DELETE(
       await tx.scene.delete({
         where: { id },
       });
-        where: { id: params.id },
-      });
-    // Delete scene
-    await prisma.scene.delete({
-      where: { id },
-    });
 
       await tx.project.update({
         where: { id: existingScene.project.id },
         data: {
           totalScenes: { decrement: 1 },
           wordCount: { decrement: existingScene.wordCount },
-          totalWordsWritten: { decrement: existingScene.wordCount },
           completedScenes: existingScene.status === 'completed' ? { decrement: 1 } : undefined,
         },
       });
