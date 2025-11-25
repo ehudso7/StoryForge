@@ -16,87 +16,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { PRICING_TIERS } from "@/lib/pricing-tiers"
 
-const pricingTiers = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Perfect for trying out StoryForge",
-    features: [
-      { text: "1 project", tooltip: "Create and manage one writing project" },
-      { text: "10 scenes per project", tooltip: "Up to 10 scenes in your project" },
-      { text: "Basic quality metrics", tooltip: "Essential UWQES scores" },
-      { text: "5 AI analyses per month", tooltip: "5 scene quality analyses monthly" },
-      { text: "Export to TXT", tooltip: "Download your work as text files" },
-    ],
-    cta: "Start Free",
-    href: "/auth/signin",
-    popular: false,
-    highlight: false,
-  },
-  {
-    name: "Starter",
-    price: "$9",
-    period: "per month",
-    description: "For serious writers",
-    features: [
-      { text: "5 projects", tooltip: "Create up to 5 writing projects" },
-      { text: "Unlimited scenes", tooltip: "No limit on scenes per project" },
-      { text: "Full quality metrics", tooltip: "Complete UWQES analysis" },
-      { text: "50 AI analyses per month", tooltip: "50 scene quality analyses monthly" },
-      { text: "Export to multiple formats", tooltip: "TXT, DOCX, PDF export" },
-      { text: "Email support", tooltip: "Get help via email" },
-      { text: "Version history (7 days)", tooltip: "7-day scene revision history" },
-    ],
-    cta: "Start Free Trial",
-    href: "/auth/signin",
-    popular: true,
-    highlight: true,
-  },
-  {
-    name: "Pro",
-    price: "$29",
-    period: "per month",
-    description: "For professional authors",
-    features: [
-      { text: "Unlimited projects", tooltip: "Create as many projects as you need" },
-      { text: "Unlimited scenes", tooltip: "No limit on scenes per project" },
-      { text: "Advanced analytics", tooltip: "Deep insights and trends" },
-      { text: "500 AI analyses per month", tooltip: "500 scene quality analyses monthly" },
-      { text: "Priority AI processing", tooltip: "Faster analysis results" },
-      { text: "All export formats", tooltip: "TXT, DOCX, PDF, EPUB, and more" },
-      { text: "Priority email & chat support", tooltip: "Fastest response times" },
-      { text: "Version history (30 days)", tooltip: "30-day scene revision history" },
-      { text: "API access", tooltip: "Integrate with your tools" },
-      { text: "Team collaboration (coming soon)", tooltip: "Share projects with others" },
-    ],
-    cta: "Start Free Trial",
-    href: "/auth/signin",
-    popular: false,
-    highlight: false,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "contact us",
-    description: "For teams and organizations",
-    features: [
-      { text: "Everything in Pro", tooltip: "All Pro features included" },
-      { text: "Unlimited AI analyses", tooltip: "No monthly limits" },
-      { text: "Custom integrations", tooltip: "Tailored to your workflow" },
-      { text: "Dedicated account manager", tooltip: "Personal support contact" },
-      { text: "Custom training & onboarding", tooltip: "Team training sessions" },
-      { text: "SLA guarantee", tooltip: "Service level agreements" },
-      { text: "Advanced security & compliance", tooltip: "SOC 2, HIPAA, etc." },
-      { text: "Self-hosted option", tooltip: "Deploy on your infrastructure" },
-    ],
-    cta: "Contact Sales",
-    href: "/contact",
-    popular: false,
-    highlight: false,
-  },
-]
+const pricingTiers = Object.values(PRICING_TIERS)
 
 const faqs = [
   {
@@ -175,12 +97,7 @@ export default function PricingPage() {
                   <CardDescription>{tier.description}</CardDescription>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">{tier.price}</span>
-                    {tier.period !== "forever" && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        / {tier.period}
-                      </span>
-                    )}
+                    <span className="text-muted-foreground">{tier.period}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -195,30 +112,14 @@ export default function PricingPage() {
 
                   <Separator />
 
-                  <TooltipProvider>
-                    <ul className="space-y-3">
-                      {tier.features.map((feature, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="flex items-center gap-1 flex-1">
-                            <span className="text-sm">{feature.text}</span>
-                            {feature.tooltip && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs text-sm">
-                                    {feature.tooltip}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </TooltipProvider>
+                  <ul className="space-y-3">
+                    {tier.features.map((feature, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             ))}

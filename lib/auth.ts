@@ -9,12 +9,14 @@ import prisma from './prisma';
  * Throws error at runtime if variable is missing
  */
 function getEnvVar(name: string): string {
+const getEnvVar = (name: string): string => {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
 }
+};
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -73,8 +75,12 @@ export const authOptions: NextAuthOptions = {
           const daysSinceReset = Math.floor((now.getTime() - resetDate.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysSinceReset >= 30) {
-            await prisma.user.update({
-              where: { id: user.id },
+            // Atomic update with condition to prevent race
+            await prisma.user.updateMany({
+              where: {
+                id: user.id,
+                usageResetDate: dbUser.usageResetDate,
+              },
               data: {
                 wordsUsedThisMonth: 0,
                 tokensUsedThisMonth: 0,

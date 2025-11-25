@@ -54,7 +54,7 @@ export default function TestExcellencePage() {
     setResult(null)
 
     try {
-      const response = await fetch("/api/analyze", {
+      const response = await fetch("/api/test/excellence", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

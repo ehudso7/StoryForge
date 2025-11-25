@@ -16,6 +16,17 @@ const createCheckoutSchema = z.object({
   cancelUrl: z.string().url().optional(),
 });
 
+// Helper to validate URL is same origin
+const isSameOrigin = (url: string, origin: string) => {
+  try {
+    const parsed = new URL(url);
+    const originParsed = new URL(origin);
+    return parsed.origin === originParsed.origin;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Check if a URL has the same origin as the base URL
  * Returns false if URL parsing fails (malformed URL)
@@ -65,6 +76,8 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
     // Validate user-provided URLs are same origin to prevent open redirect
+    // Validate URLs are same origin to prevent open redirect
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     if (successUrl && !isSameOrigin(successUrl, baseUrl)) {
       return NextResponse.json({ error: 'Invalid successUrl' }, { status: 400 });
     }
@@ -72,12 +85,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid cancelUrl' }, { status: 400 });
     }
 
+    // Get base URL from request
+    const requestOrigin = request.headers.get('origin') || 'http://localhost:3000';
+
     // Create checkout session
     const checkoutSession = await StripeService.createCheckoutSession({
       userId: session.user.id,
       tier,
-      successUrl: successUrl || `${baseUrl}/dashboard?checkout=success`,
-      cancelUrl: cancelUrl || `${baseUrl}/pricing?checkout=cancelled`,
+      successUrl: successUrl || `${requestOrigin}/dashboard?checkout=success`,
+      cancelUrl: cancelUrl || `${requestOrigin}/pricing?checkout=cancelled`,
     });
 
     return NextResponse.json({

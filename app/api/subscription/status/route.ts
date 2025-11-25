@@ -42,12 +42,14 @@ export async function GET(request: NextRequest) {
           tokensUsed: details.usage.tokensUsed,
           tokensLimit: details.usage.tokensLimit,
           tokensRemaining: details.usage.tokensLimit === -1 ? -1 : details.usage.tokensLimit - details.usage.tokensUsed,
+          tokensRemaining: details.usage.tokensLimit - details.usage.tokensUsed,
           tokensPercentage: details.usage.tokensLimit > 0
             ? Math.round((details.usage.tokensUsed / details.usage.tokensLimit) * 100)
             : 0,
           wordsUsed: details.usage.wordsUsed,
           wordsLimit: details.usage.wordsLimit,
           wordsRemaining: details.usage.wordsLimit === -1 ? -1 : details.usage.wordsLimit - details.usage.wordsUsed,
+          wordsRemaining: details.usage.wordsLimit - details.usage.wordsUsed,
           wordsPercentage: details.usage.wordsLimit > 0
             ? Math.round((details.usage.wordsUsed / details.usage.wordsLimit) * 100)
             : 0,

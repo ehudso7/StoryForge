@@ -35,9 +35,10 @@ const updateSceneSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -48,7 +49,7 @@ export async function GET(
     }
 
     const scene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -91,9 +92,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -105,7 +107,7 @@ export async function PUT(
 
     // Verify scene exists and user owns it
     const existingScene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -168,6 +170,23 @@ export async function PUT(
       const scene = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const updatedScene = await tx.scene.update({
           where: { id: params.id },
+      // Update scene with version history
+      const scene = await prisma.scene.update({
+        where: { id },
+        data: {
+          ...updateData,
+          wordCount: newWordCount,
+          versions: {
+            push: currentVersion,
+          },
+          updatedAt: new Date(),
+        },
+      });
+
+      // Update project word count if content changed
+      if (wordCountDelta !== 0) {
+        await prisma.project.update({
+          where: { id: existingScene.project.id },
           data: {
             ...updateData,
             wordCount: newWordCount,
@@ -200,7 +219,7 @@ export async function PUT(
     } else {
       // Update without content change
       const scene = await prisma.scene.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           ...updateData,
           updatedAt: new Date(),
@@ -227,9 +246,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -241,7 +261,7 @@ export async function DELETE(
 
     // Verify scene exists and user owns it
     const existingScene = await prisma.scene.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         project: {
           select: {
@@ -271,6 +291,10 @@ export async function DELETE(
       await tx.scene.delete({
         where: { id: params.id },
       });
+    // Delete scene
+    await prisma.scene.delete({
+      where: { id },
+    });
 
       await tx.project.update({
         where: { id: existingScene.project.id },

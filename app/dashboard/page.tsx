@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { Plus, TrendingUp, FileText, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -41,6 +41,7 @@ interface DashboardStats {
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   // Redirect to sign in if not authenticated
   React.useEffect(() => {
@@ -97,7 +98,8 @@ export default function DashboardPage() {
         throw new Error("Failed to delete project")
       }
       toast.success("Project deleted successfully")
-      // Refetch projects
+      queryClient.invalidateQueries({ queryKey: ["projects"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
     } catch (error) {
       toast.error("Failed to delete project")
     }
@@ -112,7 +114,8 @@ export default function DashboardPage() {
         throw new Error("Failed to archive project")
       }
       toast.success("Project archived successfully")
-      // Refetch projects
+      queryClient.invalidateQueries({ queryKey: ["projects"] })
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
     } catch (error) {
       toast.error("Failed to archive project")
     }

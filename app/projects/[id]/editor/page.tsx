@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, useParams, useSearchParams } from "next/navigation"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import Link from "next/link"
 import { ArrowLeft, Save, Loader2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -52,6 +52,7 @@ export default function EditorPage() {
   const searchParams = useSearchParams()
   const projectId = params.id as string
   const sceneId = searchParams.get("scene")
+  const queryClient = useQueryClient()
 
   const [sceneTitle, setSceneTitle] = React.useState("")
   const [sceneContent, setSceneContent] = React.useState("")
@@ -170,7 +171,7 @@ export default function EditorPage() {
 
       const data = await response.json()
       toast.success("Scene analyzed successfully!")
-      // Refetch scene to get updated metrics
+      await queryClient.invalidateQueries({ queryKey: ["scene", sceneId] })
     } catch (error) {
       toast.error("Failed to analyze scene")
     } finally {

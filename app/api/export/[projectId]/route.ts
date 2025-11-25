@@ -26,9 +26,10 @@ const exportProjectSchema = z.object({
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
+    const { projectId } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -56,7 +57,7 @@ export async function POST(
 
     // Fetch project with all scenes
     const project = await prisma.project.findUnique({
-      where: { id: params.projectId },
+      where: { id: projectId },
       include: {
         user: {
           select: {
@@ -193,7 +194,7 @@ export async function POST(
     // Save export record to database
     const exportRecord = await prisma.export.create({
       data: {
-        projectId: params.projectId,
+        projectId,
         userId: session.user.id,
         format,
         fileUrl: `/exports/${filename}`,

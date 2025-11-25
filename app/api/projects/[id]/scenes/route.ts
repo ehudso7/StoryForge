@@ -33,9 +33,10 @@ const createSceneSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -47,7 +48,7 @@ export async function GET(
 
     // Verify project exists and user owns it
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -72,6 +73,8 @@ export async function GET(
 
     // Build filter with proper typing
     const where: Prisma.SceneWhereInput = { projectId: params.id };
+    // Build filter
+    const where: any = { projectId: id };
     if (chapter) {
       where.chapterNumber = parseInt(chapter);
     }
@@ -103,9 +106,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
@@ -117,7 +121,7 @@ export async function POST(
 
     // Verify project exists and user owns it
     const project = await prisma.project.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { userId: true },
     });
 
@@ -154,7 +158,7 @@ export async function POST(
     // Check if scene already exists at this position
     const existingScene = await prisma.scene.findFirst({
       where: {
-        projectId: params.id,
+        projectId: id,
         chapterNumber,
         sceneNumber,
       },
@@ -180,6 +184,7 @@ export async function POST(
       const newScene = await tx.scene.create({
         data: {
           projectId: params.id,
+          projectId: id,
           chapterNumber,
           sceneNumber,
           title: title.trim(),
@@ -193,6 +198,7 @@ export async function POST(
 
       await tx.project.update({
         where: { id: params.id },
+        where: { id },
         data: {
           totalScenes: { increment: 1 },
           wordCount: { increment: wordCount },
