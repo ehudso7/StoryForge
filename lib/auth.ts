@@ -9,14 +9,12 @@ import prisma from './prisma';
  * Throws error at runtime if variable is missing
  */
 function getEnvVar(name: string): string {
-const getEnvVar = (name: string): string => {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
 }
-};
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
