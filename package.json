@@ -40,7 +40,7 @@
     "jspdf": "^2.5.2",
     "lucide-react": "^0.462.0",
     "nanoid": "^5.0.8",
-    "next": "^14.2.15",
+    "next": "14.2.35",
     "next-auth": "^4.24.10",
     "next-pwa": "^5.6.0",
     "next-themes": "^0.4.3",
